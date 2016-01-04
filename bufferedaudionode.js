@@ -1,3 +1,5 @@
+'use strict';
+
 /** An audio node that allows writing samples. */
 export default class BufferedAudioNode {
   /**
@@ -83,8 +85,13 @@ export default class BufferedAudioNode {
    * @return {number} The current fraction of the buffer filled.
    */
   buffer() {
-    let frames = this.written_ + this.started_ - 
+    const frames = this.written_ + this.started_ - 
         this.ac_.currentTime * this.ac_.sampleRate;
+    // TODO(sdh): if frames < 0 then there's an underrun.
+    //   - if started is zero then this shouldn't be a problem
+    //     (though it would be nice to rearrange things so this
+    //     doesn't happen).
+    //   - otherwise we probably want to advance written?
     return Math.max(0, frames) / this.fc_;
   }
 

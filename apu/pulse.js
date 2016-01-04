@@ -2,9 +2,9 @@
  * @fileoverview NES APU Emulator.
  */
 
-import Memory from './mem';
-import Divider from './divider';
-
+import Memory from '../mem';
+import Divider from '../divider';
+import Envelope from './Envelope';
 
 export default class ApuPulse extends ApuUnit {
   /**
@@ -14,12 +14,9 @@ export default class ApuPulse extends ApuUnit {
   constructor(mem, base) {
     /** @private @const {number} */
     this.base_ = base;
-    /** @private @const {!Memory.Register<number>} */
-    this.volumeEnvelope_ = mem.int(base, 0, 4);
-    /** @private @const {!Memory.Register<boolean>} */
-    this.constantVolume_ = mem.bool(base, 4);
-    /** @private @const {!Memory.Register<boolean>} */
-    this.envelopeLoop_ = mem.bool(base, 5);
+    /** @private @const {!Envelope} */
+    this.envelope_ = new Envelope(mem, base);
+    
     /** @private @const {!Memory.Register<number>} */
     this.dutyCycle_ = mem.int(base, 6, 2);
     /** @private @const {!Memory.Register<number>} */
@@ -42,23 +39,29 @@ export default class ApuPulse extends ApuUnit {
 
     this.silenced_ = false;
 
-    /** @type {!ApuPulse.Duty} */
-    this.duty = ApuPulse.Duty[0];
-
     /** @private {number} */
     this.sequence_ = 0;
+    /** @private {number} */
+    this.sequenceDivider_ = 0;
 
     mem.listen(base + 1, () => { this.sweepReload_ = true; });
   }
 
-  /** Clocks the pulse unit. */
-  clock() {
-
-
+  /**
+   * @return {number} The value of the waveform, from 0 to 15 (?)
+   */
+  volume() {
+    if (this.silenced_ ||
+        this.lengthCounter_.get() == 0 ||
+        this.wavePeriod_.get() < 8 ||
+        DUTY_CYCLE_LIST[this.dutyCycle_.get()][this.sequence_] == 0) {
+      return 0;
+    }
+    return this.envelope_.volume();
   }
 
-  /** Clocks the sweep unit. */
-  clockSweep_() { // TODO(sdh): clocked by frame counter
+  /** Clocks the frame counter. */
+  clockFrame() {
     if (this.sweepDivider_ == 0 && this.sweepEnabled_.get()) {
       const target = this.sweepTarget_();
       if (target > 0x7ff || target < 8) {
@@ -73,6 +76,20 @@ export default class ApuPulse extends ApuUnit {
       this.sweepDivider_ = this.sweepPeriod_.get();
       this.sweepReload_ = false;
     }
+    this.envelope_.clock();
+  }
+
+  /** Clocks the sequencer. */
+  clockSequencer() {
+    if (this.sequenceDivider_ == 0) {
+      this.sequenceDivider_ = this.wavePeriod_.get();
+      this.sequence_ = (this.sequence_ + 1) % 8;
+    }
+  }
+
+  /** Clocks the waveform generator. */
+  clockWaveform_() {
+    
   }
 
   sweepTarget_() {
