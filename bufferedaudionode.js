@@ -23,7 +23,7 @@ export default class BufferedAudioNode {
     /** @private {number} */
     this.written_ = 0;
     /** @private {number} */
-    this.started_ = 0;
+    this.started_ = -1;
     /** @private {number} */
     this.underrun_ = -1;
     /** @private {?AudioNode} */
@@ -72,7 +72,7 @@ export default class BufferedAudioNode {
 
     this.s_ = this.ac_.createBufferSource();
     this.written_ = 0;
-    this.started_ = 0;
+    this.started_ = -1;
     this.writePromise_ = this.writeResolver_ = null;
 
     this.s_.buffer = this.ab_;
@@ -85,6 +85,7 @@ export default class BufferedAudioNode {
    * @return {number} The current fraction of the buffer filled.
    */
   buffer() {
+    if (this.started_ < 0) return 0;
     const frames = this.written_ + this.started_ - 
         this.ac_.currentTime * this.ac_.sampleRate;
     // TODO(sdh): if frames < 0 then there's an underrun.
@@ -93,6 +94,26 @@ export default class BufferedAudioNode {
     //     doesn't happen).
     //   - otherwise we probably want to advance written?
     return Math.max(0, frames) / this.fc_;
+  }
+
+
+  /**
+   * @return {number} Time (in seconds) until the buffer underruns.
+   */
+  bufferTime() {
+    if (this.started_ < 0) return Infinity;
+    const time = (this.written_ + this.started_) / this.ac_.sampleRate - 
+        this.ac_.currentTime;
+    return Math.max(0, time);
+  }
+
+
+  /**
+   * @return {number} Max samples that can be added without an overrun.
+   */
+  bufferLimit() {
+    const limit = (this.maxBuffer_ - this.buffer()) * this.fc_;
+    return Math.max(0, Math.floor(limit));
   }
 
 

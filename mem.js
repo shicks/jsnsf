@@ -1,13 +1,25 @@
 /** Manages memory, including various views and listeners. */
 export default class Memory {
   constructor() {
-    /** @private @const {!Array<number>} */
-    this.data_ = [];
-    for (let i = 0; i < 0x4000; i++) {
-      this.data_[i] = 0;
-    }
+    /** @private @const {!Uint32Array} */
+    this.data_ = new Uint32Array(0x4000);
     /** @private @const {!Object<number, !Array<function()>>} */
     this.callbacks_ = {};
+  }
+
+
+  /**
+   * @param {number} addr
+   * @param {boolean=} opt_crossing
+   * @return {!Memory.Cell}
+   */
+  cell(addr, opt_crossing) {
+    const data = this.data_;
+    return {
+      get() { return data[addr]; },
+      set(value) { data[addr] = value; },
+      cross: opt_crossing || false;
+    };
   }
 
 
@@ -23,6 +35,20 @@ export default class Memory {
 
   /**
    * @param {number} addr
+   * @param {boolean=} opt_wrap Whether to wrap around the page.
+   * @return {number}
+   */
+  getWord(addr, opt_wrap) {
+    let next = (addr + 1) & 0xffff;
+    if (opt_wrap) {
+      next = (next & 0xfff) | (addr & 0xf000);
+    }
+    return this.get(addr) | (this.get(next) << 8);
+  }
+
+
+  /**
+   * @param {number} addr
    * @param {number} value
    */
   set(addr, value) {
@@ -31,6 +57,16 @@ export default class Memory {
     const mask = ~(0xff << shift);
     this.data_[word] = (this.data_[word] & mask) | ((value & 0xff) << shift);
     this.call_(addr);
+  }
+
+
+  /**
+   * @param {number} addr
+   * @param {number} value
+   */
+  setWord(addr, value) {
+    this.set(addr, value & 0xff);
+    this.set(addr + 1, value >>> 8);
   }
 
 
@@ -132,4 +168,14 @@ Memory.Register = class {
   get() {}
   /** @param {T} value */
   set(value) {}
+};
+
+
+/**
+ * @record
+ * @extends {Memory.Register<number>}
+ */
+Memory.Cell = class extends Memory.Register {
+  /** @return {boolean} */
+  get cross() {}
 };
