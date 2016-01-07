@@ -55,37 +55,41 @@ export default class StepGeneratorNode {
     let next;
     const samples = [];
     while (!(next = generator.next()).done) {
-      const s = next.value[0] * this.ac_.sampleRate;
-      const v = next.value[1] - this.lastValue_;
-      //console.log('step: [' + s + ', ' + v + ']');
+      for (let step of next.value) {
+        // console.log('step: ' + step[0] + ', ' + step[1]);
+        const s = step[0] * this.ac_.sampleRate;
+        const v = step[1] - this.lastValue_;
+        //console.log('step: [' + s + ', ' + v + ']');
 
-      if (s <= this.sample_) {
-        this.lastSample_ = next.value[1];
-        this.lastValue_ = next.value[1];
-        this.steps_ = [];
-        console.log('past value: resetting');
-        continue;
-      }
-      this.lastValue_ += v;
-
-      // Compute samples until s - kernel.radius
-      const endSample = Math.floor(s - this.kernel_.radius);
-      if (endSample > this.sample_) {
-        const deltas =
-            this.kernel_.convolve(this.sample_, endSample, this.steps_)
-        for (let delta of deltas) {
-          // TODO(sdh): can we remove the floating-point error drift?!?
-          //this.lastSample_ *= 0.9999995;
-          samples.push(this.lastSample_ += delta);
+        if (s <= this.sample_) {
+          this.lastSample_ = step[1];
+          this.lastValue_ = step[1];
+          this.steps_ = [];
+          console.log('past value: resetting');
+          continue;
         }
-        this.sample_ = endSample;
+        this.lastValue_ += v;
 
-        const done = Math.floor(this.sample_ - this.kernel_.radius);
-        let i = 0;
-        while (i < this.steps_.length && this.steps_[i][0] < done) i++;
-        if (i > 0) this.steps_.splice(0, i);
+        // Compute samples until s - kernel.radius
+        const endSample = Math.floor(s - this.kernel_.radius);
+        if (endSample > this.sample_) {
+          const deltas =
+            this.kernel_.convolve(this.sample_, endSample, this.steps_)
+          for (let delta of deltas) {
+            // TODO(sdh): can we remove the floating-point error drift?!?
+            //this.lastSample_ *= 0.9999995;
+            samples.push(this.lastSample_ += delta);
+          }
+          this.sample_ = endSample;
+
+          const done = Math.floor(this.sample_ - this.kernel_.radius);
+          let i = 0;
+          while (i < this.steps_.length && this.steps_[i][0] < done) i++;
+          if (i > 0) this.steps_.splice(0, i);
+        }
+        // console.log('step push: ' + s + ', ' + v);
+        this.steps_.push([s, v]);
       }
-      this.steps_.push([s, v]);
 
       // Check the various ending conditions.
       if (new Date().getTime() >= timeLimit) {
@@ -100,16 +104,15 @@ export default class StepGeneratorNode {
         console.log('step count exceeded');
         break;
       }
+      if (next.done) console.log('done!?');
     }
-    if (next.done) console.log('done!?');
-
     if (!samples.length) {
       //this.generate_(generator);
       console.log('no samples!');
       return;
     }
     // now write the buffer.
-    console.log('write()', samples);
+    // console.log('write()', samples);
     this.buffer_.write(samples).then(() => this.generate_(generator));
   }
 }

@@ -1,4 +1,4 @@
-
+import Memory from '../mem';
 
 /** Envelope generator (TODO - inherit from LengthCounter?). */
 export default class Envelope {
@@ -16,7 +16,11 @@ export default class Envelope {
     // /** @private @const {!Memory.Register<number>} */
     // this.lengthCounter_ = mem.int(base + 3, 3, 5);
 
-    mem.listen(base + 3, () => this.start_ = true);
+    mem.listen(base + 3, () => {
+      // console.log('envelope start: ' + mem.get(base + 3));
+      // window.msg = true;
+      this.start_ = true;
+    });
 
     /** @private {boolean} */
     this.start_ = false;
@@ -24,6 +28,13 @@ export default class Envelope {
     this.divider_ = 0;
     /** @private {number} */
     this.counter_ = 0;
+  }
+
+  print() {
+    return `
+  volumeEnvelope=${this.volumeEnvelope_.get()}
+  constantVolume=${this.constantVolume_.get()}
+  loopFlag=${this.loopFlag_.get()}`;
   }
 
   /** Clocked by the frame counter. */
@@ -58,8 +69,10 @@ export default class Envelope {
   /** Returns the volume. */
   volume() {
     if (this.constantVolume_.get()) {
+      //console.log('constant volume: ' + this.volumeEnvelope_.get());
       return this.volumeEnvelope_.get();
     } else {
+      //console.log('counter: ' + this.counter_);
       return this.counter_;
     }
   }

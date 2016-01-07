@@ -1,25 +1,18 @@
 /** Manages memory, including various views and listeners. */
 export default class Memory {
   constructor() {
-    /** @private @const {!Uint32Array} */
-    this.data_ = new Uint32Array(0x4000);
+    /** @private @const {!Uint8Array} */
+    this.data8_ = new Uint8Array(0x10000);
     /** @private @const {!Object<number, !Array<function()>>} */
     this.callbacks_ = {};
+    /** @private @const {!Object<number, !Memory.Register>} */
+    this.registers_ = {};
   }
 
 
-  /**
-   * @param {number} addr
-   * @param {boolean=} opt_crossing
-   * @return {!Memory.Cell}
-   */
-  cell(addr, opt_crossing) {
-    const data = this.data_;
-    return {
-      get() { return data[addr]; },
-      set(value) { data[addr] = value; },
-      cross: opt_crossing || false;
-    };
+  zero() {
+    this.data8_.fill(0);
+    // TODO - clear callbacks?
   }
 
 
@@ -28,20 +21,20 @@ export default class Memory {
    * @return {number}
    */
   get(addr) {
-    const shift = (addr & 3) << 3;
-    return (this.data_[addr >>> 2] >>> shift) & 0xff;
+    const reg = this.registers_[addr];
+    return reg ? reg.get() : this.data8_[addr];
   }
 
 
   /**
    * @param {number} addr
-   * @param {boolean=} opt_wrap Whether to wrap around the page.
+   * @param {number=} opt_wrap Page size for wrapping.
    * @return {number}
    */
   getWord(addr, opt_wrap) {
     let next = (addr + 1) & 0xffff;
     if (opt_wrap) {
-      next = (next & 0xfff) | (addr & 0xf000);
+      next = (next & opt_wrap) | (addr & ~opt_wrap);
     }
     return this.get(addr) | (this.get(next) << 8);
   }
@@ -52,10 +45,9 @@ export default class Memory {
    * @param {number} value
    */
   set(addr, value) {
-    const shift = (addr & 3) << 3;
-    const word = addr >>> 2;
-    const mask = ~(0xff << shift);
-    this.data_[word] = (this.data_[word] & mask) | ((value & 0xff) << shift);
+    const reg = this.registers_[addr];
+    if (reg) reg.set(value);
+    else this.data8_[addr] = value;
     this.call_(addr);
   }
 
@@ -75,8 +67,11 @@ export default class Memory {
    * @private
    */
   call_(addr) {
-    for (let cb of (this.callbacks_[addr] || [])) {
-      cb();
+    const cbs = this.callbacks_[addr];
+    if (cbs) {
+      for (let cb of cbs) {
+        cb();
+      }
     }
   }
 
@@ -92,37 +87,38 @@ export default class Memory {
 
   /**
    * @param {number} addr
+   * @param {!Memory.Register} register
+   */
+  register(addr, register) {
+    this.registers_[addr] = register;
+  }
+
+
+  /**
+   * @param {number} addr
    * @param {number} shift
    * @param {number} length
    * @return {!Memory.Register<number>}
    */
   int(addr, shift, length) {
-    if (length > 32) throw new Error('register max = 32 bits');
     if (shift > 8) {
       addr += shift >>> 3;
       shift = shift & 3;
     }
-    const startWord = addr >>> 2;
-    const endWord = (addr + ((shift + length - 1) >>> 3)) >> 2;
-    const data = this.data_;
-    if (startWord == endWord) {
-      shift += (startWord & 3) << 3;
-      const mask = makeMask(length) << shift;
-      const call = this.call_.bind(this, startWord);
-      return {
-        get() {
-          return (data[startWord] & mask) >>> shift;
-        },
-        set(value) {
-          // TODO(sdh): check overflow of value and throw error?
-          data[startWord] =
-            (data[startWord] & ~mask) | ((value << shift) & mask);
-          call();
-        },
-      };
-    } else {
-      throw new Error('unimplemented');
-    }
+    if (shift + length > 16) throw new Error('two bytes max');
+    const self = this;
+    const mask = makeMask(length) << shift;
+    const getWord = mask > 0xff ? this.getWord : this.get;
+    const setWord = mask > 0xff ? this.setWord : this.set;
+    return {
+      get() {
+        return (getWord.call(self, addr) & mask) >>> shift;
+      },
+      set(value) {
+        const word = getWord.call(self, addr);
+        setWord.call((word & ~mask) | ((value << shift) & mask));
+      },
+    };
   }
 
 
@@ -132,16 +128,15 @@ export default class Memory {
    * @return {!Memory.Register<boolean>}
    */
   bool(addr, bit) {
-    const word = addr >>> 2;
-    bit += (addr & 3) << 3;
     const mask = 1 << bit;
+    const self = this;
     return {
       get() {
-        return !!(data[word] & mask);
+        return !!(self.get(addr) & mask);
       },
       set(value) {
-        if (value) data[word] |= mask;
-        else data[word] &= ~mask;
+        if (value) self.set(addr, self.get(addr) | mask);
+        else self.set(addr, self.get(addr) & ~mask);
       },
     };
   }
@@ -168,14 +163,4 @@ Memory.Register = class {
   get() {}
   /** @param {T} value */
   set(value) {}
-};
-
-
-/**
- * @record
- * @extends {Memory.Register<number>}
- */
-Memory.Cell = class extends Memory.Register {
-  /** @return {boolean} */
-  get cross() {}
 };
