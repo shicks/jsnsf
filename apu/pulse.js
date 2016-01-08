@@ -28,8 +28,6 @@ export default class ApuPulse {
     this.sweepEnabled_ = mem.bool(base, 15);
     /** @private @const {!Memory.Register<number>} */
     this.wavePeriod_ = mem.int(base, 16, 11);
-    /** @private @const {!Memory.Register<number>} */
-    this.lengthCounter_ = mem.int(base, 27, 5);
 
     /** @private {number} */
     this.sweepDivider_ = 0;  // TODO(sdh): use a Divider?
@@ -59,8 +57,7 @@ pulse ${this.base_ - 0x4000}: silenced=${this.silenced_}, duty=${DUTY_CYCLE_LIST
   sweepNegate=${this.sweepNegate_.get()}
   sweepPeriod=${this.sweepPeriod_.get()}
   sweepEnabled=${this.sweepEnabled_.get()}
-  wavePeriod=${this.wavePeriod_.get()}
-  lengthCounter=${this.lengthCounter_.get()}` + this.envelope_.print());
+  wavePeriod=${this.wavePeriod_.get()}` + this.envelope_.print());
   }
 
   /**
@@ -78,8 +75,11 @@ pulse ${this.base_ - 0x4000}: silenced=${this.silenced_}, duty=${DUTY_CYCLE_LIST
     return this.envelope_.volume();
   }
 
-  /** Clocks the frame counter. */
-  clockFrame() {
+  /**
+   * Clocks the frame counter.
+   * @param {number} quarter An integer from 0 to 3, indicating the quarter.
+   */
+  clockFrame(quarter) {
     if (this.sweepDivider_ == 0 && this.sweepEnabled_.get()) {
       const target = this.sweepTarget_();
       if (target > 0x7ff || target < 8) {
@@ -94,7 +94,7 @@ pulse ${this.base_ - 0x4000}: silenced=${this.silenced_}, duty=${DUTY_CYCLE_LIST
       this.sweepDivider_ = this.sweepPeriod_.get();
       this.sweepReload_ = false;
     }
-    this.envelope_.clock();
+    this.envelope_.clock(quarter % 2);
   }
 
   /** Clocks the sequencer. */

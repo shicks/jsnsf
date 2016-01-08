@@ -1,4 +1,5 @@
 import Memory from '../mem';
+import LengthCounter from './lengthcounter';
 
 /** Envelope generator (TODO - inherit from LengthCounter?). */
 export default class Envelope {
@@ -13,13 +14,12 @@ export default class Envelope {
     this.constantVolume_ = mem.bool(base, 4);
     /** @private @const {!Memory.Register<boolean>} */
     this.loopFlag_ = mem.bool(base, 5); // TODO(sdh): also: length counter halt?
-    // /** @private @const {!Memory.Register<number>} */
-    // this.lengthCounter_ = mem.int(base + 3, 3, 5);
 
     mem.listen(base + 3, () => {
       // console.log('envelope start: ' + mem.get(base + 3));
       // window.msg = true;
       this.start_ = true;
+      if (!this.loopFlag_.get()) this.lengthCounter_.start();
     });
 
     /** @private {boolean} */
@@ -28,6 +28,9 @@ export default class Envelope {
     this.divider_ = 0;
     /** @private {number} */
     this.counter_ = 0;
+
+    /** @private {!LengthCounter} */
+    this.lengthCounter_ = new LengthCounter(mem, base);
   }
 
   print() {
@@ -35,10 +38,14 @@ export default class Envelope {
   volumeEnvelope=${this.volumeEnvelope_.get()}
   constantVolume=${this.constantVolume_.get()}
   loopFlag=${this.loopFlag_.get()}`;
+    // TODO -include length counter
   }
 
-  /** Clocked by the frame counter. */
-  clock() {
+  /**
+   * Clocked by the frame counter.
+   * @param {number} half Whether this is a half frame.
+   */
+  clock(half) {
     if (!this.start_) {
       this.clockDivider_();
     } else {
@@ -46,6 +53,7 @@ export default class Envelope {
       this.counter_ = 15;
       this.reloadDivider_();
     }
+    if (half && !this.loopFlag_.get()) this.lengthCounter_.clock();
   }
 
   clockDivider_() {
@@ -68,6 +76,8 @@ export default class Envelope {
 
   /** Returns the volume. */
   volume() {
+    // First check the length counter
+    if (!this.loopFlag_.get() && !this.lengthCounter_.enabled()) return 0;
     if (this.constantVolume_.get()) {
       //console.log('constant volume: ' + this.volumeEnvelope_.get());
       return this.volumeEnvelope_.get();

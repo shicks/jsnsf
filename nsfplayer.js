@@ -26,7 +26,7 @@ export default class NsfPlayer {
     //yield [];
     let frameCounter = this.cyclesPerFrame;
     // console.log('Starting frame counter at ' + frameCounter);
-    for (let i = 0; i < 600 * this.cyclesPerFrame; i++) {
+    for (let i = 0; /*i < 6 * this.cyclesPerFrame*/; i++) {
       if (frameCounter != frameCounter) throw new Error('NaN');
       if (--frameCounter <= 0) {
         frameCounter = this.cyclesPerFrame;
@@ -35,7 +35,8 @@ export default class NsfPlayer {
           this.nsf.frame(this.cpu);
         }
         // Yield a single frame worth of steps
-        const data = this.apu.steps();
+        let data = this.apu.steps();
+        if (!data.length) data = [[this.clock.time, 0]];
         // console.log('Yield data', data);
         yield data;
       }
@@ -62,6 +63,7 @@ function startEmu(buf) {
   console.log(nsf + '');
   const ac = new AudioContext();
   const player = new NsfPlayer(ac, nsf);
+  window.PLAYER = player;
 
   let track = 1;
 

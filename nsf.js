@@ -69,6 +69,7 @@ export default class Nsf {
     cpu.pushWord(this.playAddress_ - 1);
     cpu.PC = this.initAddress_ - 1;
     cpu.A = song || this.startSong_;
+    cpu.X = 0; // or PAL...
   }
 
   frame(cpu) {

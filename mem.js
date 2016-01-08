@@ -48,7 +48,7 @@ export default class Memory {
     const reg = this.registers_[addr];
     if (reg) reg.set(value);
     else this.data8_[addr] = value;
-    this.call_(addr);
+    this.call_(addr, value);
   }
 
 
@@ -64,13 +64,14 @@ export default class Memory {
 
   /**
    * @param {number} addr
+   * @param {number} value
    * @private
    */
-  call_(addr) {
+  call_(addr, value) {
     const cbs = this.callbacks_[addr];
     if (cbs) {
       for (let cb of cbs) {
-        cb();
+        cb(value);
       }
     }
   }
@@ -78,7 +79,7 @@ export default class Memory {
 
   /**
    * @param {number} addr
-   * @param {function()} callback
+   * @param {function(number)} callback
    */
   listen(addr, callback) {
     (this.callbacks_[addr] = this.callbacks_[addr] || []).push(callback);

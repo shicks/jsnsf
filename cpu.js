@@ -61,7 +61,9 @@ export default class Cpu {
       try {
         this.opcode.op.call(this);
       } finally {
-        if (window.msg) { console.log(this.message); window.msg = false; }
+        if (window.msg) { 
+          console.log(this.message);
+        window.msg = false; }
       }
       
       if (!this.opcode.extraCycles) this.wait = 0;
@@ -85,10 +87,14 @@ export default class Cpu {
 
   disassemble(addr, count) {
     const result = [];
-    this.PC = addr - 1;
+    this.PC = --addr;
     while (count-- > 0) {
       this.loadOp();
-      result.push(this.message);
+      let bytes = '\t\t\t';
+      while (addr < this.PC) {
+        bytes += hex(this.mem_.get(++addr)).substring(1) + ' ';
+      }
+      result.push(this.message + bytes);
     }
     console.log(result.join('\n'));
   }
@@ -323,7 +329,6 @@ export default class Cpu {
   BRK() { this.B = this.I = 1; }
   
 
-
   get MP() {
     const addr = this.opcode.mode.func.call(this);
     if (addr == null || addr < 0) throw new Error('Jump to non-address.');
@@ -355,23 +360,29 @@ export default class Cpu {
 
   /** @param {number} value A one-byte integer. */
   pushByte(value) {
-    this.mem_[this.SP--] = value;
+    this.mem_.set(this.SP--, value);
+    this.message += `\t\t(SP)=${hex(value)}, SP=${hex(this.SP,2)}`;
   }
 
   /** @param {number} value A two-byte integer. */
   pushWord(value) {
     this.mem_.setWord(this.SP - 1, value);
     this.SP -= 2;
+    this.message += `\t\t(SP)=${hex(value, 2)}, SP=${hex(this.SP,2)}`;
   }
 
   /** @return {number} */
   pullByte(value) {
-    return this.mem_[++this.SP];
+    const result = this.mem_.get(++this.SP);
+    this.message += `\t\t${hex(result)}<-(SP), SP=${hex(this.SP,2)}`;
+    return result;
   }
 
   /** @return {number} */
   pullWord(value) {
-    return this.mem_.getWord((this.SP += 2) - 1);
+    const result = this.mem_.getWord((this.SP += 2) - 1);
+    this.message += `\t\t${hex(result, 2)}<-(SP), SP=${hex(this.SP,2)}`;
+    return result;
   }
 
   /**
@@ -406,7 +417,7 @@ export default class Cpu {
    * @private
    */
   checkBranch_(addr) {
-    this.message += `\t\tPC=${hex(this.PC, 2)}`;
+    this.message += `\t\tPC=${hex(this.PC, 2)}->${hex(addr, 2)}`;
     this.wait = ((this.PC & 0xf000) == (addr & 0xf000)) ? 1 : 2;
     return addr;
   }
@@ -563,7 +574,14 @@ function instructionTable() {
   op('NOP', Cpu.prototype.NOP);
   op('BRK', Cpu.prototype.BRK);
   // Illegal Opcodes
+  function combo(a, b) {
+    if (!a || !b) throw new Error('bad reference');
+    return function() { a.call(this); b.call(this); };
+  }
   op('KIL', Cpu.prototype.KIL);
+  op('SLO', combo(Cpu.prototype.ASL, Cpu.prototype.ORA));
+  op('XAA', combo(Cpu.prototype.TXA, Cpu.prototype.AND));
+  op('RLA', combo(Cpu.prototype.ROL, Cpu.prototype.AND));
 
   // Addressing Modes
   mode('A', Cpu.prototype.accumulator);
@@ -670,6 +688,7 @@ function instructionTable() {
     let illegal = false;
     if (split[0][3] == '!') {
       split[0] = split[0].replace('!', '');
+      split[0] = split[0].replace('!', ''); // some have two
       illegal = true;
     }
     let op = ops[split[0]];
@@ -699,6 +718,11 @@ function instructionTable() {
 }
 
 function hex(num, opt_bytes, opt_signed) {
+  if (num == null) {
+    window.msg = true;
+    setTimeout(() => { throw 'NULL number'; }, 0);
+    return 'NUL';
+  }
   let sign = '';
   if (opt_signed) {
     sign = '+';
