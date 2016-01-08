@@ -75,19 +75,7 @@ export default class Apu {
     this.pulse1_.clockSequencer();
     this.pulse2_.clockSequencer();
 
-    const pulse1 = this.pulse1_.volume();
-    const pulse2 = this.pulse2_.volume();
-    const pulseOut = (pulse1 || pulse2) &&
-        95.88 / (8128 / (pulse1 + pulse2) + 100);
-
-    const triangle = 0; // this.triangle_.volume();
-    const noise = 0; // this.noise_.volume();
-    const dmc = 0; // this.dmc_.volume();
-    const tndOut = (triangle || noise || dmc) &&
-        159.79 / (1 / (triangle / 8227 + noise / 12241 + dmc / 22638) + 100);
-
-    const volume = pulseOut + tndOut;
-
+    const volume = this.volume();
     if (volume != this.last_) {
       this.steps_.push([this.clock_.time, volume]);
       this.last_ = volume;
@@ -103,8 +91,25 @@ export default class Apu {
 
   steps() {
     const steps = this.steps_;
-    this.steps_ = [];
+    const volume = this.volume();
+    steps.push([this.clock_.time, volume]); // always return at least one.
+    this.steps_ = [[this.clock_.time, volume]];
     return steps;
+  }
+
+  volume() {
+    const pulse1 = this.pulse1_.volume();
+    const pulse2 = this.pulse2_.volume();
+    const pulseOut = (pulse1 || pulse2) &&
+        95.88 / (8128 / (pulse1 + pulse2) + 100);
+
+    const triangle = 0; // this.triangle_.volume();
+    const noise = 0; // this.noise_.volume();
+    const dmc = 0; // this.dmc_.volume();
+    const tndOut = (triangle || noise || dmc) &&
+        159.79 / (1 / (triangle / 8227 + noise / 12241 + dmc / 22638) + 100);
+
+    return pulseOut + tndOut;
   }
 }
 

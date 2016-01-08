@@ -6,7 +6,8 @@ import Clock from './clock';
 import Cpu from './cpu';
 import Memory from './mem';
 import Nsf from './nsf';
-import StepGeneratorNode from './audio/stepgeneratornode';
+import StepBufferWriter from './audio/stepbufferwriter';
+import BufferedAudioNode from './audio/bufferedaudionode';
 
 export default class NsfPlayer {
 
@@ -18,41 +19,40 @@ export default class NsfPlayer {
     this.apu = new Apu(this.mem, this.clock);
     this.cpu = new Cpu(this.mem);
     this.banks = new BankSwitcher(this.mem);
-    this.node = new StepGeneratorNode(ac, 2);
+    this.node = new BufferedAudioNode(ac, 2);
     this.node.connect(ac.destination);
+    this.writer = new StepBufferWriter(this.node);
+    this.promise = null;
   }
 
   start(song = 0) {
     this.nsf.init(this.cpu, this.mem, song, this.banks);
-    this.node.generator = this.play();
+    this.node.reset();
+    this.promise = null;
+    this.play(null);
   }
 
-  *play() {
-    //yield [];
-    let frameCounter = this.cyclesPerFrame;
-    // console.log('Starting frame counter at ' + frameCounter);
-    for (let i = 0; /*i < 6 * this.cyclesPerFrame*/; i++) {
-      if (frameCounter != frameCounter) throw new Error('NaN');
-      if (--frameCounter <= 0) {
-        frameCounter = this.cyclesPerFrame;
-        if (this.cpu.PC == 0xFFFF) {
-          // console.log('New frame');
-          this.nsf.frame(this.cpu);
-        }
-        // Yield a single frame worth of steps
-        let data = this.apu.steps();
-        if (!data.length) data = [[this.clock.time, 0]];
-        // console.log('Yield data', data);
-        yield data;
-      }
+  play(promise) {
+    if (this.promise != promise) return;
+    for (let frameCycle = this.cyclesPerFrame; frameCycle >= 0; frameCycle--) {
+      if (frameCycle != frameCycle) throw new Error('NaN');
       if (this.cpu.PC != 0xFFFF) this.cpu.clock();
       this.apu.clock();
       this.clock.tick();
     }
+    if (this.cpu.PC == 0xFFFF) {
+      // console.log('New frame');
+      this.nsf.frame(this.cpu);
+    }
+    // Yield a single frame worth of steps
+    promise = this.promise =
+        this.writer.write(this.apu.steps(), this.clock.time)
+            .then(() => this.play(promise));
+    // console.log('Yield data', data);
   }
 
   stop() {
-    this.node.generator = null;
+    this.promise = null;
   }
 }
 

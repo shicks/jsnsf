@@ -40,7 +40,6 @@ export default class BufferedAudioNode {
     Object.seal(this);
   }
 
-
   get context() { return this.ac_; }
   get numberOfInputs() { return 0; }
   get numberOfOutputs() { return 1; }
@@ -66,7 +65,7 @@ export default class BufferedAudioNode {
   /** Resets everything to an empty buffer. */
   reset() {
     if (this.writeResolver_) this.writeResolver_();
-    this.s_.stop(0);
+    if (this.started_ >= 0) this.s_.stop(0);
     this.s_.disconnect();
 
     this.s_ = this.ac_.createBufferSource();
