@@ -74,10 +74,10 @@ export default class Nsf {
     if (this.bankInits_.find(i => i)) {
       // Bank switching is enabled.
       if (!banks) throw new Error('Bank switcher required for this ROM');
-      banks.load(this.loadAddress_, this.data_);
+      banks.load(this.data_, this.loadAddress_);
     } else {
       // No bank switching, so load directly.
-      mem.load(this.loadAddress_, this.data_);
+      mem.load(this.data_, this.loadAddress_);
     }
     cpu.pushWord(0xffff); // special signal that we're done...
     cpu.pushWord(this.playAddress_ - 1);
