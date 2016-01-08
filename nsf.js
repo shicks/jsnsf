@@ -1,3 +1,8 @@
+import BankSwitcher from './bankswitcher';
+import Clock from './clock';
+import Cpu from './cpu';
+import Memory from './mem';
+
 function getString(view, start, length) {
   const bytes = [];
   for (let i = 0; i < length; i++) {
@@ -49,27 +54,37 @@ export default class Nsf {
     this.data_ = new Uint8Array(buf, 0x80);
   }
 
+  /** @param {!Clock} clock */
   cyclesPerFrame(clock) {
     const speed = clock.ntsc ? this.playSpeedNtsc_ : this.playSpeedPal_;
     return Math.floor(speed / 1e6 / clock.cycleLength);
   }
 
-  init(cpu, mem, song = 0) {
-    // Check for paged data
-    if (this.bankInits_.find(i => i)) {
-      throw new Error('Bank switching unimplemented');
-    }
+  /**
+   * @param {!Cpu} cpu
+   * @param {!Memory} mem
+   * @param {?number=} song
+   * @param {?BankSwitcher=} banks
+   */
+  init(cpu, mem, song = null, banks = null) {
     // Load the data
     mem.zero();
     cpu.init();
-    for (let i = 0; i < this.data_.length; i++) {
-      mem.set(this.loadAddress_ + i, this.data_[i]);
+
+    if (this.bankInits_.find(i => i)) {
+      // Bank switching is enabled.
+      if (!banks) throw new Error('Bank switcher required for this ROM');
+      banks.load(this.loadAddress_, this.data_);
+    } else {
+      // No bank switching, so load directly.
+      mem.load(this.loadAddress_, this.data_);
     }
     cpu.pushWord(0xffff); // special signal that we're done...
     cpu.pushWord(this.playAddress_ - 1);
     cpu.PC = this.initAddress_ - 1;
-    cpu.A = song || this.startSong_;
-    cpu.X = 0; // or PAL...
+    cpu.A = song != null ? song : this.startSong_;
+    // really, we need the clock... this is getting horribly tangled!
+    cpu.X = this.palNtsc_ != 'pal' ? 0 : 1;  // default to NTSC
   }
 
   frame(cpu) {

@@ -1,8 +1,9 @@
+import Apu from './apu/apu';
+import BankSwitcher from './bankswitcher';
 import Clock from './clock';
 import Cpu from './cpu';
 import Memory from './mem';
 import Nsf from './nsf';
-import Apu from './apu/apu';
 import StepGeneratorNode from './stepgeneratornode';
 
 export default class NsfPlayer {
@@ -14,11 +15,13 @@ export default class NsfPlayer {
     this.mem = new Memory();
     this.apu = new Apu(this.mem, this.clock);
     this.cpu = new Cpu(this.mem);
+    this.banks = new BankSwitcher(this.mem);
     this.node = new StepGeneratorNode(ac, 2);
+    this.node.connect(ac.destination);
   }
 
   start(song = 0) {
-    this.nsf.init(this.cpu, this.mem, song);
+    this.nsf.init(this.cpu, this.mem, song, this.banks);
     this.node.generator = this.play();
   }
 

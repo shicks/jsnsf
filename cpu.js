@@ -717,21 +717,20 @@ function instructionTable() {
   return opcodes;
 }
 
-function hex(num, opt_bytes, opt_signed) {
+function hex(num, bytes = 1, signed = false) {
   if (num == null) {
     window.msg = true;
     setTimeout(() => { throw 'NULL number'; }, 0);
     return 'NUL';
   }
   let sign = '';
-  if (opt_signed) {
+  if (signed) {
     sign = '+';
     if (num < 0) {
       sign = '-';
       num = -num;
     }
   }
-  const bytes = opt_bytes || 1;
   let str = num.toString(16).toUpperCase();
   while (str.length < bytes * 2) {
     str = '0000'.substring(0, bytes * 2 - str.length) + str;

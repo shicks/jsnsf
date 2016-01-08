@@ -63,6 +63,16 @@ export default class Memory {
 
 
   /**
+   * Loads a 4k chunk.
+   * @param {!Uint8Array} data A 4k buffer.
+   * @param {number} offset The offset to start loading.
+   */
+  load(data, offset) {
+    this.data8_.set(data, offset);
+  }
+
+
+  /**
    * @param {number} addr
    * @param {number} value
    * @private

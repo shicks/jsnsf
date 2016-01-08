@@ -31,7 +31,6 @@ export default class BufferedAudioNode {
 
     this.s_.buffer = this.ab_;
     this.s_.loop = true;
-    this.s_.connect(ac.destination);
 
     this.maxBuffer_ = 0.9;
     this.minBuffer_ = 0.5;
