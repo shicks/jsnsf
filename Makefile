@@ -1,6 +1,6 @@
 .PHONY: all
 
-all: nes.compiled.js # test4.compiled.js
+all: nes.compiled.js
 
 JSCOMP=java -jar ~/Downloads/compiler.jar
 
