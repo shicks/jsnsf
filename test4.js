@@ -1,3 +1,5 @@
+//@ test4.compiled.js --language_in=ES6_STRICT --language_out=ES5_STRICT --create_source_map=nes.srcmap --jscomp_warning=checkTypes --jscomp_warning=checkVars
+
 'use strict';
 
 import StepGeneratorNode from './stepgeneratornode';

@@ -1,3 +1,5 @@
+//@ nes.compiled.js --language_in=ES6_STRICT --language_out=ES5_STRICT --create_source_map=nes.srcmap --jscomp_warning=checkTypes --jscomp_warning=checkVars
+
 import Apu from './apu/apu';
 import BankSwitcher from './bankswitcher';
 import Clock from './clock';

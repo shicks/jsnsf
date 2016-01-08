@@ -75,7 +75,7 @@ export default class StepGeneratorNode {
         if (endSample > this.sample_) {
           const deltas =
             this.kernel_.convolve(this.sample_, endSample, this.steps_)
-          for (let delta of deltas) {
+          for (let delta of /** @type {!Iterable<number>} */ (deltas)) {
             // TODO(sdh): can we remove the floating-point error drift?!?
             //this.lastSample_ *= 0.9999995;
             samples.push(this.lastSample_ += delta);
@@ -247,10 +247,10 @@ function cisi(x) {
 
   const t = Math.abs(x);
   let cs;  // complex result
-  if (!t) return new Complex(-BIG, 0);
+  if (!t) return new Complex(-BIG);
   if (t > TMIN) {
     let b = new Complex(1, t);
-    let c = new Complex(BIG, 0);
+    let c = new Complex(BIG);
     let d = b.inv();
     let h = d;
     let i;
@@ -302,9 +302,9 @@ function cisi(x) {
 }
 
 class Complex {
-  constructor(re, im) {
+  constructor(re, im = 0) {
     this.re = re;
-    this.im = im || 0;
+    this.im = im;
     Object.freeze(this);
   }
 

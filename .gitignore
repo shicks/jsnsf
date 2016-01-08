@@ -1,0 +1,4 @@
+deps.d
+*.compiled.*
+*.srcmap
+scraps/*

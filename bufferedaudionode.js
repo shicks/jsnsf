@@ -66,7 +66,7 @@ export default class BufferedAudioNode {
   /** Resets everything to an empty buffer. */
   reset() {
     if (this.writeResolver_) this.writeResolver_();
-    this.s_.stop();
+    this.s_.stop(0);
     this.s_.disconnect();
 
     this.s_ = this.ac_.createBufferSource();
@@ -117,8 +117,8 @@ export default class BufferedAudioNode {
 
 
   /**
-   * @param {!ArrayLike<number>} left
-   * @param {!ArrayLike<number>=} right
+   * @param {!Array<number>|!Float32Array} left
+   * @param {!Array<number>|!Float32Array=} right
    * @param {number=} offset
    * @param {!Promise=} promise
    * @return {!Promise} Promise that completes when buffer written.
@@ -137,7 +137,7 @@ export default class BufferedAudioNode {
     let pos = this.written_ % this.fc_;
     if (offset > end) throw new Error('impossible ' + offset + ' > ' + end);
     if (this.written_ == 0 && offset < end) {
-      this.s_.start();
+      this.s_.start(this.ac_.currentTime);
       this.started_ = this.ac_.currentTime * this.ac_.sampleRate;
     }
     for (let i = offset; i < end; i++) {
