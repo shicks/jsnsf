@@ -6,7 +6,7 @@ import Clock from './clock';
 import Cpu from './cpu';
 import Memory from './mem';
 import Nsf from './nsf';
-import StepGeneratorNode from './stepgeneratornode';
+import StepGeneratorNode from './audio/stepgeneratornode';
 
 export default class NsfPlayer {
 

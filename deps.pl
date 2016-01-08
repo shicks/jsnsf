@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Dependency and makefile management.
-# Usage: ./deps.pl
+# Usage: ./deps.pl FIND_ARGS...
 # Result: Generates a makefile based on in-file markup.
 
 # Input files:
@@ -31,7 +31,7 @@ use warnings;
 use File::Basename qw/dirname/;
 
 # Find all files recursively from current dir
-open FIND, "find . -name '*.js' | sed 's+^./++' |";
+open FIND, "find . -name '*.js' @ARGV | sed 's+^./++' |";
 my @files = <FIND>;
 close FIND;
 map {chomp $_} @files;
@@ -70,7 +70,7 @@ foreach my $out (sort(keys(%generated))) {
   my @q = ($file);
   while (@q) {
     my $cur = shift @q;
-    foreach (split / /, $deps{$cur}) {
+    foreach (split / /, ($deps{$cur} or '')) {
       next unless $_;
       next if defined $d{$_};
       $d{$_} = 1;

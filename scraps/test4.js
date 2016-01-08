@@ -2,7 +2,7 @@
 
 'use strict';
 
-import StepGeneratorNode from './stepgeneratornode';
+import StepGeneratorNode from './audio/stepgeneratornode';
 
 const ac = new AudioContext();
 const sg = new StepGeneratorNode(ac, 2);
