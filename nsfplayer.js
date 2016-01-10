@@ -52,7 +52,7 @@ export default class NsfPlayer {
     // Yield a single frame worth of steps
     promise = this.promise =
         this.writer.write(this.apu.steps(), this.clock.time)
-            .then(() => this.play(promise));
+            .then(() => { setTimeout(() => this.play(promise), 1); });
     // console.log('Yield data', data);
   }
 

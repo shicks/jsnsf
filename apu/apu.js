@@ -109,7 +109,11 @@ export default class Apu {
     const tndOut = (triangle || noise || dmc) &&
         159.79 / (1 / (triangle / 8227 + noise / 12241 + dmc / 22638) + 100);
 
+    //console.log('volume=' + (pulseOut + tndOut));
     return pulseOut + tndOut;
+
+    // TODO(sdh): consider using the linear approximation and adjusting
+    // all the APU units to output waves centered at zero.
   }
 }
 
