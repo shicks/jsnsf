@@ -43,23 +43,23 @@ export default class Apu {
 
     this.frameCounter_ = 0;
 
-    mem.register(0x4015, {
-      get: this.getStatus.bind(this),
-      set: this.setStatus.bind(this),
-    });
+    // mem.register(0x4015, {
+    //   get: this.getStatus.bind(this),
+    //   set: this.setStatus.bind(this),
+    // });
 
-    this.status_ = 0;
+    // this.status_ = 0;
   }
 
-  getStatus() {
-    // console.log('get status');
-    return this.status_;;
-  }
+  // getStatus() {
+  //   // console.log('get status');
+  //   return this.status_;
+  // }
 
-  setStatus(value) {
-    // console.log('set status: ' + value);
-    this.status_ = value;
-  }
+  // setStatus(value) {
+  //   // console.log('set status: ' + value);
+  //   this.status_ = value;
+  // }
 
   clock() {
     if (++this.frameCounter_ == FRAME_LIMIT) this.frameCounter_ = 0;

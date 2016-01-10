@@ -15,16 +15,21 @@ export default class BankSwitcher {
     }
   }
 
+
+  get pages() {
+    return this.pages_.length;
+  }
+
   
   /**
    * Loads the banks.
-   * @param {number} padding Padding, only the low 12 bits are used.
    * @param {!Uint8Array} data
+   * @param {number} padding Padding, only the low 12 bits are used.
    */
-  load(padding, data) {
+  load(data, padding) {
     padding &= 0xfff;
     let bufferSize = padding + data.length;
-    if (bufferSize & 0xfff) bufferSize = (bufferSize & ~0xfff + 0x1000);
+    if (bufferSize & 0xfff) bufferSize = ((bufferSize & ~0xfff) + 0x1000);
     let buffer;
     if (data.length < bufferSize) {
       buffer = new Uint8Array(bufferSize);
@@ -33,8 +38,9 @@ export default class BankSwitcher {
       buffer = data;
     }
     for (let i = 0; i < (bufferSize >>> 12); i++) {
-      this.pages_[i] = new Uint8Array(buffer, i << 12, 0x1000);
+      this.pages_[i] = new Uint8Array(buffer.buffer, i << 12, 0x1000);
     }
+    console.log('Loaded ' + this.pages_.length + ' pages from ' + data.length);
   }
 
 
@@ -44,8 +50,10 @@ export default class BankSwitcher {
    * @private
    */
   swap_(bank, page) {
+    console.log('BANK SWITCH: ' + bank + ' <= ' + page);
     if (!this.pages_.length) return; // bank switching not loaded/enabled
     if (page >= this.pages_.length) throw new Error('invalid bank index');
-    this.mem_.loadBank(this.pages_[page], (bank & 0xf) << 12);
+    this.mem_.load(this.pages_[page], (bank & 0xf) << 12);
+    console.log('  ==> done');
   }
 }

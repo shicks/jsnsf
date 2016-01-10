@@ -12,6 +12,7 @@ export default class LengthCounter {
 
   clock() {
     if (this.counter_ > 0) this.counter_--;
+    if (!this.counter_ && this.enabled_.get()) this.enabled_.set(false);
   }
 
   start() {

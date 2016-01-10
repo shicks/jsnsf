@@ -39,20 +39,24 @@ export default class NsfPlayer {
     // dump the whole log...?
 
     if (this.promise != promise) return;
-    for (let frameCycle = this.cyclesPerFrame; frameCycle >= 0; frameCycle--) {
-      if (frameCycle != frameCycle) throw new Error('NaN');
-      if (this.cpu.PC != 0xFFFF) this.cpu.clock();
-      this.apu.clock();
-      this.clock.tick();
-    }
-    if (this.cpu.PC == 0xFFFF) {
-      // console.log('New frame');
-      this.nsf.frame(this.cpu);
+    if (this.node.bufferTime() == 0) console.log('buffer underrun!');
+    for (let i = 0; i < 10; i++) {
+      for (let frameCycle = this.cyclesPerFrame; frameCycle >= 0; frameCycle--) {
+        if (frameCycle != frameCycle) throw new Error('NaN');
+        if (this.cpu.PC != 0xFFFF) this.cpu.clock();
+        this.apu.clock();
+        this.clock.tick();
+      }
+      if (this.cpu.PC == 0xFFFF) {
+        // console.log('New frame');
+        this.nsf.frame(this.cpu);
+      }
     }
     // Yield a single frame worth of steps
     promise = this.promise =
         this.writer.write(this.apu.steps(), this.clock.time)
-            .then(() => { setTimeout(() => this.play(promise), 1); });
+            //.then(() => this.play(promise));
+            .then(() => { setTimeout(() => this.play(promise), 0); });
     // console.log('Yield data', data);
   }
 

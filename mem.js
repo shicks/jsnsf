@@ -21,6 +21,7 @@ export default class Memory {
    * @return {number}
    */
   get(addr) {
+    return this.data8_[addr];
     const reg = this.registers_[addr];
     return reg ? reg.get() : this.data8_[addr];
   }
@@ -36,6 +37,7 @@ export default class Memory {
     if (opt_wrap) {
       next = (next & opt_wrap) | (addr & ~opt_wrap);
     }
+    return this.data8_[addr] | (this.data8_[next] << 8);
     return this.get(addr) | (this.get(next) << 8);
   }
 
@@ -45,9 +47,12 @@ export default class Memory {
    * @param {number} value
    */
   set(addr, value) {
-    const reg = this.registers_[addr];
-    if (reg) reg.set(value);
-    else this.data8_[addr] = value;
+    if (addr & 0xfff0 == 0x4000) {
+      console.log(`($${addr.toString(16)}) <- $${value.toString(16)}`);
+    }
+    // const reg = this.registers_[addr];
+    // if (reg) reg.set(value);
+    this.data8_[addr] = value;
     this.call_(addr, value);
   }
 

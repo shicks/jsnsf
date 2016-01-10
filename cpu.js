@@ -46,6 +46,7 @@ export default class Cpu {
     var logdiv = document.getElementById('log');
     this.log = logdiv ? msg => logdiv.textContent += msg + '\n' : msg => console.log(msg);
     this.log = () => {};
+    this.log = msg => console.log(msg);
   }
 
   init() {
@@ -63,13 +64,13 @@ export default class Cpu {
     if (--this.wait > 1) return;
     if (this.opcode) {
       // Actually execute the opcode.
-      try {
+      // try {
         this.opcode.op.call(this);
-      } finally {
-        //if (window.msg) { 
-          this.log(this.message);
-        //window.msg = false; }
-      }
+      // } finally {
+      //   //if (window.msg) { 
+           // this.log(this.message);
+      //   //window.msg = false; }
+      // }
       
       if (!this.opcode.extraCycles) this.wait = 0;
       this.opcode = null;
@@ -89,7 +90,7 @@ export default class Cpu {
     }
     this.wait += this.opcode.cycles;
     const lastPc = hex(this.PC - this.opcode.mode.bytes, 2);
-    this.message = `${lastPc}: ${this.opcode.format(this.operand)}`;
+    // this.message = `${lastPc}: ${this.opcode.format(this.operand)}`;
   }
 
 
@@ -306,7 +307,8 @@ export default class Cpu {
   }
   // Return from Subroutine
   RTS() { this.PC = this.pullWord();
-          this.message += '\t\t\tPC=' + hex(this.PC); }
+          // this.message += '\t\t\tPC=' + hex(this.PC);
+        }
   // Return from Interrupt
   RTI() {
     this.SR = this.pullByte();
@@ -334,7 +336,14 @@ export default class Cpu {
   // No Operation
   NOP() {}
   // Break: 1 -> B, 1 -> I
-  BRK() { this.B = this.I = 1; }
+  BRK() {
+    this.B = this.I = 1;
+
+    if (!this.mem_.getWord(this.PC) && !this.mem_.getWord(this.PC + 2)) {
+      throw new Error('Executing zeros!');
+    }
+
+  }
   
 
   get MP() {
@@ -359,37 +368,37 @@ export default class Cpu {
     if (addr < 0) throw new Error('Cannot write to immediate value.');
     if (addr == null) {
       this.A = value;
-      this.message += '\t\tA=' + hex(value);
+      // this.message += '\t\tA=' + hex(value);
     } else {
       this.mem_.set(addr, value);
-      this.message += '\t\t(' + hex(addr, 2) + ')=' + hex(value);
+      // this.message += '\t\t(' + hex(addr, 2) + ')=' + hex(value);
     }
   }
 
   /** @param {number} value A one-byte integer. */
   pushByte(value) {
     this.mem_.set(this.SP--, value);
-    this.message += `\t\t(SP)=${hex(value)}, SP=${hex(this.SP,2)}`;
+    // this.message += `\t\t(SP)=${hex(value)}, SP=${hex(this.SP,2)}`;
   }
 
   /** @param {number} value A two-byte integer. */
   pushWord(value) {
     this.mem_.setWord(this.SP - 1, value);
     this.SP -= 2;
-    this.message += `\t\t(SP)=${hex(value, 2)}, SP=${hex(this.SP,2)}`;
+    // this.message += `\t\t(SP)=${hex(value, 2)}, SP=${hex(this.SP,2)}`;
   }
 
   /** @return {number} */
   pullByte(value) {
     const result = this.mem_.get(++this.SP);
-    this.message += `\t\t${hex(result)}<-(SP), SP=${hex(this.SP,2)}`;
+    // this.message += `\t\t${hex(result)}<-(SP), SP=${hex(this.SP,2)}`;
     return result;
   }
 
   /** @return {number} */
   pullWord(value) {
     const result = this.mem_.getWord((this.SP += 2) - 1);
-    this.message += `\t\t${hex(result, 2)}<-(SP), SP=${hex(this.SP,2)}`;
+    // this.message += `\t\t${hex(result, 2)}<-(SP), SP=${hex(this.SP,2)}`;
     return result;
   }
 
@@ -414,7 +423,7 @@ export default class Cpu {
   cmpFlags_(reg, mem) {
     this.C = !(this.S = reg < mem);
     this.Z = reg == mem;
-    this.message += `\t\tR=${hex(reg)}, M=${hex(mem)}, C=${this.C?1:0}, S=${this.S?1:0}, Z=${this.Z?1:0}`;
+    // this.message += `\t\tR=${hex(reg)}, M=${hex(mem)}, C=${this.C?1:0}, S=${this.S?1:0}, Z=${this.Z?1:0}`;
   }   
 
   /**
@@ -425,7 +434,7 @@ export default class Cpu {
    * @private
    */
   checkBranch_(addr) {
-    this.message += `\t\tPC=${hex(this.PC, 2)}->${hex(addr, 2)}`;
+    // this.message += `\t\tPC=${hex(this.PC, 2)}->${hex(addr, 2)}`;
     this.wait = ((this.PC & 0xf000) == (addr & 0xf000)) ? 1 : 2;
     return addr;
   }

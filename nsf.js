@@ -75,6 +75,11 @@ export default class Nsf {
       // Bank switching is enabled.
       if (!banks) throw new Error('Bank switcher required for this ROM');
       banks.load(this.data_, this.loadAddress_);
+      const fds = this.extraSupport_.indexOf('FDS') >= 0;
+      for (let i = 0; i < 8; i++) {
+        const addr = (i > 5 && fds) ? 0x5ff0 + i : 0x5ff8 + i;
+        mem.set(addr, this.bankInits_[i]);
+      }
     } else {
       // No bank switching, so load directly.
       mem.load(this.data_, this.loadAddress_);

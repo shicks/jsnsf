@@ -40,7 +40,7 @@ export default class StepBufferWriter {
 
     // TODO(sdh): consider having the input always start at zero?
 
-    //console.log('WRITE: [' + steps.map(s=>`[${s[0]},${s[1]}]`) + ']');
+    // console.log('WRITE: [' + steps.map(s=>`[${s[0]},${s[1]}]`) + ']');
     if (!steps.length) return new Promise(resolve => setTimeout(resolve, 50));
 
     const samples = [];
@@ -83,7 +83,7 @@ export default class StepBufferWriter {
       this.steps_.push([s, v]);
     }
     // now write the buffer.
-    //console.log(`Writing ${samples.length} samples`, samples);
+    // console.log(`Writing ${samples.length} samples`, samples);
     return this.buffer_.write(samples);
   }
 }
