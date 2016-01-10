@@ -82,6 +82,8 @@ export default class Nsf {
     cpu.pushWord(0xffff); // special signal that we're done...
     cpu.pushWord(this.playAddress_ - 1);
     cpu.PC = this.initAddress_ - 1;
+    mem.set(0x4015, 0xf);
+    mem.set(0x4017, 0x40);
     cpu.A = song != null ? song : this.startSong_;
     // really, we need the clock... this is getting horribly tangled!
     cpu.X = this.palNtsc_ != 'pal' ? 0 : 1;  // default to NTSC

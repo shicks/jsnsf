@@ -33,6 +33,11 @@ export default class NsfPlayer {
   }
 
   play(promise) {
+
+    // TODO - add a check - store assembler logs for first ten (60?)
+    // frames - if volume is never non-zero after these frames,
+    // dump the whole log...?
+
     if (this.promise != promise) return;
     for (let frameCycle = this.cyclesPerFrame; frameCycle >= 0; frameCycle--) {
       if (frameCycle != frameCycle) throw new Error('NaN');
@@ -65,12 +70,12 @@ function readLocalFiles() {
 
 function startEmu(buf) {
   const nsf = new Nsf(buf);
-  console.log(nsf + '');
+new Cpu(new Memory()).log(nsf + '');
   const ac = new AudioContext();
   const player = new NsfPlayer(ac, nsf);
   window.PLAYER = player;
 
-  let track = 1;
+  let track = 2;
 
   player.start(track);
 

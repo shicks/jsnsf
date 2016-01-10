@@ -41,6 +41,11 @@ export default class Cpu {
 
     this.opcodes_ = instructionTable();
     this.message = '';
+
+
+    var logdiv = document.getElementById('log');
+    this.log = logdiv ? msg => logdiv.textContent += msg + '\n' : msg => console.log(msg);
+    this.log = () => {};
   }
 
   init() {
@@ -61,9 +66,9 @@ export default class Cpu {
       try {
         this.opcode.op.call(this);
       } finally {
-        if (window.msg) { 
-          console.log(this.message);
-        window.msg = false; }
+        //if (window.msg) { 
+          this.log(this.message);
+        //window.msg = false; }
       }
       
       if (!this.opcode.extraCycles) this.wait = 0;
@@ -78,6 +83,9 @@ export default class Cpu {
     let shift = 0;
     for (let i = this.opcode.mode.bytes; i > 0; i--) {
       this.operand |= this.mem_.get(++this.PC) << ((shift += 8) - 8);
+    }
+    if (this.opcode.mode.signed && this.operand > 0x7F) {
+      this.operand -= 0x100;
     }
     this.wait += this.opcode.cycles;
     const lastPc = hex(this.PC - this.opcode.mode.bytes, 2);
@@ -451,15 +459,15 @@ class AddressingMode {
     this.bytes = /\$\$/.test(fmt) ? 2 : /\$/.test(fmt) ? 1 : 0;
     /** @const {function(!Cpu): ?number} */
     this.func = func;
-
-    const signed = /\+\$/.test(fmt);
+    /** @const {boolean} */
+    this.signed = /\+\$/.test(fmt);
     const before = fmt.replace(/\+?\$\$?.*/, '');
     const after = fmt.replace(/.*\+?\$\$?/, '');
     this.format =
         !this.bytes ?
         arg => fmt :
         arg => {
-          return `${before}${hex(arg, this.bytes, signed)}${after}`
+          return `${before}${hex(arg, this.bytes, this.signed)}${after}`
         };
   }
 }
