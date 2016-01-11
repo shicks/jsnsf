@@ -1,6 +1,7 @@
-import Pulse from './pulse';
 import Clock from '../clock';
 import Memory from '../mem';
+import Noise from './noise';
+import Pulse from './pulse';
 
 // APU has a clock speed of ~900 kHz, and it potentially samples
 // a point at every time (though most of the time nothing changes).
@@ -37,6 +38,7 @@ export default class Apu {
     this.clock_ = clock;
     this.pulse1_ = new Pulse(mem, 0x4000);
     this.pulse2_ = new Pulse(mem, 0x4004);
+    this.noise_ = new Noise(mem);
     this.steps_ = [];
     this.last_ = 0;
     this.wait_ = 2;
@@ -68,12 +70,14 @@ export default class Apu {
       // TODO - distinguish half from quarter frames.
       this.pulse1_.clockFrame();
       this.pulse2_.clockFrame();
+      this.noise_.clockFrame();
     }
 
     if (--this.wait_) return;
 
     this.pulse1_.clockSequencer();
     this.pulse2_.clockSequencer();
+    this.noise_.clockSequencer();
 
     const volume = this.volume();
     if (volume != this.last_) {
@@ -84,10 +88,11 @@ export default class Apu {
     this.wait_ = 2;
   }
 
-  clockFrame() {
-    this.pulse1_.clockFrame();
-    this.pulse2_.clockFrame();
-  }
+  // clockFrame() {
+  //   this.pulse1_.clockFrame();
+  //   this.pulse2_.clockFrame();
+  //   this.noise_.clockFrame();
+  // }
 
   steps() {
     const steps = this.steps_;
@@ -104,7 +109,7 @@ export default class Apu {
         95.88 / (8128 / (pulse1 + pulse2) + 100);
 
     const triangle = 0; // this.triangle_.volume();
-    const noise = 0; // this.noise_.volume();
+    const noise = this.noise_.volume();
     const dmc = 0; // this.dmc_.volume();
     const tndOut = (triangle || noise || dmc) &&
         159.79 / (1 / (triangle / 8227 + noise / 12241 + dmc / 22638) + 100);
