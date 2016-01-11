@@ -20,6 +20,9 @@ export default class Noise {
     this.shiftDivider_ = 0;
     /** @private {number} */
     this.shiftRegister_ = 1;
+
+    /** @private {boolean} */
+    this.duty_ = false;
   }
 
 //   print() {
@@ -40,7 +43,7 @@ export default class Noise {
   volume() {
     //console.log('pulse ' + (this.base_ - 0x4000) + ': silenced=' + this.silenced_ + ', length=' + this.lengthCounter_.get() + ', period=' + this.wavePeriod_.get() + ', duty=' + DUTY_CYCLE_LIST[this.dutyCycle_.get()][this.sequence_]);
 
-    return this.shiftRegister_ & 1 ? this.envelope_.volume() : 0;
+    return this.duty_ ? this.envelope_.volume() : 0;
   }
 
   /**
@@ -58,6 +61,7 @@ export default class Noise {
           (this.shiftRegister_ & 1) ^
           ((this.shiftRegister_ >>> (this.mode_.get() ? 6 : 1)) & 1);
       this.shiftRegister_ = (this.shiftRegister_ >>> 1) | (feedback << 14);
+      this.duty_ = !!(this.shiftRegister_ & 1);
       this.shiftDivider_ = TIMER_PERIOD_NTSC[this.rate_.get()];
     } else {
       this.shiftDivider_--;

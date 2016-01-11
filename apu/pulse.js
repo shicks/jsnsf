@@ -34,6 +34,7 @@ export default class ApuPulse {
     /** @private {boolean} */
     this.sweepReload_ = false;
 
+    /** @private {boolean} Whether we're silenced due to period overflow. */
     this.silenced_ = false;
 
     /** @private {number} */
@@ -41,11 +42,23 @@ export default class ApuPulse {
     /** @private {number} */
     this.sequenceDivider_ = 0;
 
-    for (let i = 0; i < 4; i++) {
-      mem.listen(base + i, () => this.print());
-    }
+    /** @private {boolean} Whether the duty is on or not. */
+    this.duty_ = false;
 
-    mem.listen(base + 1, () => { this.sweepReload_ = true; });
+    // for (let i = 0; i < 4; i++) {
+    //   mem.listen(base + i, () => this.print());
+    // }
+    mem.listen(base + 1, () => {
+      this.sweepReload_ = true;
+    });
+    mem.listen(base + 2, () => {
+      this.duty_ = this.computeDuty_();
+    });
+    mem.listen(base + 3, () => {
+      this.sequence_ = 0;
+      this.duty_ = this.computeDuty_();
+      // NOTE: envelope also restarted... (elsewhere)
+    });
   }
 
   print() {
@@ -61,18 +74,21 @@ pulse ${this.base_ - 0x4000}: silenced=${this.silenced_}, duty=${DUTY_CYCLE_LIST
   }
 
   /**
+   * @return {boolean} Whether the pulse is currently high.
+   */
+  computeDuty_() {
+    //console.log('pulse ' + (this.base_ - 0x4000) + ': silenced=' + this.silenced_ + ', length=' + this.lengthCounter_.get() + ', period=' + this.wavePeriod_.get() + ', duty=' + DUTY_CYCLE_LIST[this.dutyCycle_.get()][this.sequence_]);
+    return !(
+        this.silenced_ ||
+        this.wavePeriod_.get() < 8 ||
+        !DUTY_CYCLE_LIST[this.dutyCycle_.get()][this.sequence_] == 0);
+  }
+
+  /**
    * @return {number} The value of the waveform, from 0 to 15 (?)
    */
   volume() {
-    //console.log('pulse ' + (this.base_ - 0x4000) + ': silenced=' + this.silenced_ + ', length=' + this.lengthCounter_.get() + ', period=' + this.wavePeriod_.get() + ', duty=' + DUTY_CYCLE_LIST[this.dutyCycle_.get()][this.sequence_]);
-
-    if (this.silenced_ ||
-        //this.lengthCounter_.get() == 0 ||
-        this.wavePeriod_.get() < 8 ||
-        DUTY_CYCLE_LIST[this.dutyCycle_.get()][this.sequence_] == 0) {
-      return 0;
-    }
-    return this.envelope_.volume();
+    return this.duty_ ? this.envelope_.volume() : 0;
   }
 
   /**
@@ -84,6 +100,7 @@ pulse ${this.base_ - 0x4000}: silenced=${this.silenced_}, duty=${DUTY_CYCLE_LIST
       const target = this.sweepTarget_();
       if (target > 0x7ff || target < 8) {
         this.silenced_ = true;
+        this.duty_ = false;
       } else {
         this.wavePeriod_.set(target);
       }
@@ -93,8 +110,10 @@ pulse ${this.base_ - 0x4000}: silenced=${this.silenced_}, duty=${DUTY_CYCLE_LIST
     if (this.sweepReload_) {
       this.sweepDivider_ = this.sweepPeriod_.get();
       this.sweepReload_ = false;
+      this.silenced_ = false;
     }
     this.envelope_.clock(quarter % 2);
+    this.duty_ = this.computeDuty_();
   }
 
   /** Clocks the sequencer. */
@@ -102,6 +121,7 @@ pulse ${this.base_ - 0x4000}: silenced=${this.silenced_}, duty=${DUTY_CYCLE_LIST
     if (this.sequenceDivider_ == 0) {
       this.sequenceDivider_ = this.wavePeriod_.get();
       this.sequence_ = (this.sequence_ + 1) % 8;
+      this.duty_ = this.computeDuty_();
     } else {
       this.sequenceDivider_--;
     }

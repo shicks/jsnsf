@@ -24,10 +24,10 @@ export default class StepBufferWriter {
     this.steps_ = [];
 
     // this.kernel_ = new StepKernel([[.5, .5], [.5, .5]]);
-    this.kernel_ = new StepKernel([[1, 0], [0, 1]]);
+    //this.kernel_ = new StepKernel([[1, 0], [0, 1]]);
 
     /** @private @const {!StepKernel} */
-    //this.kernel_ = lanczosKernel(5, 32);
+    this.kernel_ = lanczosKernel(5, 32);
   }
 
 

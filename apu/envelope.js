@@ -15,6 +15,10 @@ export default class Envelope {
     /** @private @const {!Memory.Register<boolean>} */
     this.loopFlag_ = mem.bool(base, 5); // TODO(sdh): also: length counter halt?
 
+    mem.listen(base + 0, () => {
+      this.volume_ = this.computeVolume_();
+    });
+
     mem.listen(base + 3, () => {
       // console.log('envelope start: ' + mem.get(base + 3));
       // window.msg = true;
@@ -28,6 +32,9 @@ export default class Envelope {
     this.divider_ = 0;
     /** @private {number} */
     this.counter_ = 0;
+
+    /** @private {number} */
+    this.volume_ = 0;
 
     /** @private {!LengthCounter} */
     this.lengthCounter_ = new LengthCounter(mem, base);
@@ -53,7 +60,10 @@ export default class Envelope {
       this.counter_ = 15;
       this.reloadDivider_();
     }
-    if (half && !this.loopFlag_.get()) this.lengthCounter_.clock();
+    if (half && !this.loopFlag_.get()) {
+      this.lengthCounter_.clock();
+      this.volume_ = this.computeVolume_();
+    }
   }
 
   clockDivider_() {
@@ -72,10 +82,11 @@ export default class Envelope {
 
   reloadDivider_() {
     this.divider_ = this.volumeEnvelope_.get();
+    this.volume_ = this.computeVolume_();
   }
 
   /** Returns the volume. */
-  volume() {
+  computeVolume_() {
     // First check the length counter
     if (!this.loopFlag_.get() && !this.lengthCounter_.enabled()) return 0;
     if (this.constantVolume_.get()) {
@@ -85,5 +96,9 @@ export default class Envelope {
       //console.log('counter: ' + this.counter_);
       return this.counter_;
     }
+  }
+
+  volume() {
+    return this.volume_;
   }
 }

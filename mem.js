@@ -117,6 +117,9 @@ export default class Memory {
    * @return {!Memory.Register<number>}
    */
   int(addr, shift, length) {
+
+    // TODO - have these listen for writes and keep a local copy?!?
+
     if (shift > 8) {
       addr += shift >>> 3;
       shift = shift & 3;
