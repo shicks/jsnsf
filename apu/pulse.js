@@ -5,7 +5,7 @@
 import Memory from '../mem';
 import Envelope from './envelope';
 
-export default class ApuPulse {
+export default class Pulse {
   /**
    * @param {!Memory} mem
    * @param {number} base Base address, either $4000 or $4004.

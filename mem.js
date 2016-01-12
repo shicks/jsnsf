@@ -129,9 +129,13 @@ export default class Memory {
     const mask = makeMask(length) << shift;
     const getWord = mask > 0xff ? this.getWord : this.get;
     const setWord = mask > 0xff ? this.setWord : this.set;
+    const get = () => (getWord.call(self, addr) & mask) >>> shift;
+    let value = get();
+    this.listen(addr, () => value = get());
+    if (mask > 0xff) this.listen(addr + 1, () => value = get());
     return {
       get() {
-        return (getWord.call(self, addr) & mask) >>> shift;
+        return value;
       },
       set(value) {
         const word = getWord.call(self, addr);
@@ -149,9 +153,12 @@ export default class Memory {
   bool(addr, bit) {
     const mask = 1 << bit;
     const self = this;
+    const get = () => !!(self.get(addr) & mask);
+    let value = get();
+    this.listen(addr, () => value = get());
     return {
       get() {
-        return !!(self.get(addr) & mask);
+        return value;
       },
       set(value) {
         if (value) self.set(addr, self.get(addr) | mask);

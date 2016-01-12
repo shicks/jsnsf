@@ -7,7 +7,15 @@ export default class LengthCounter {
     /** @private {number} */
     this.counter_ = 0;
 
+    /** @private {function()} */
+    this.disableCallback_ = function() {};
+
     mem.listen(0x4015, () => { if (!this.enabled_.get()) this.disable(); });
+  }
+
+  /** @param {function()} callback */
+  onDisable(callback) {
+    this.disableCallback_ = callback;
   }
 
   clock() {
@@ -23,6 +31,7 @@ export default class LengthCounter {
 
   disable() {
     this.counter_ = 0;
+    this.disableCallback_();
   }
 
   /** @return {boolean} */

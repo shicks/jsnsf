@@ -1,5 +1,7 @@
 //@ nes.compiled.js --language_in=ES6_STRICT --language_out=ES5_STRICT --create_source_map=nes.srcmap --jscomp_warning=checkTypes --jscomp_warning=checkVars
 
+// -O ADVANCED_OPTIMIZATIONS
+
 import Apu from './apu/apu';
 import BankSwitcher from './bankswitcher';
 import Clock from './clock';
@@ -40,7 +42,7 @@ export default class NsfPlayer {
 
     if (this.promise != promise) return;
     if (this.node.bufferTime() == 0) console.log('buffer underrun!');
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 100; i++) {
       for (let frameCycle = this.cyclesPerFrame; frameCycle >= 0; frameCycle--) {
         if (frameCycle != frameCycle) throw new Error('NaN');
         if (this.cpu.PC != 0xFFFF) this.cpu.clock();
@@ -56,7 +58,8 @@ export default class NsfPlayer {
     promise = this.promise =
         this.writer.write(this.apu.steps(), this.clock.time)
             //.then(() => this.play(promise));
-            .then(() => { setTimeout(() => this.play(promise), 0); });
+            // .then(() => { setTimeout(() => this.play(promise), 0); });
+            .then(() => { requestAnimationFrame(() => this.play(promise)); });
     // console.log('Yield data', data);
   }
 

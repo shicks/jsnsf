@@ -2,6 +2,7 @@ import Clock from '../clock';
 import Memory from '../mem';
 import Noise from './noise';
 import Pulse from './pulse';
+import Triangle from './triangle';
 
 // APU has a clock speed of ~900 kHz, and it potentially samples
 // a point at every time (though most of the time nothing changes).
@@ -38,12 +39,16 @@ export default class Apu {
     this.clock_ = clock;
     this.pulse1_ = new Pulse(mem, 0x4000);
     this.pulse2_ = new Pulse(mem, 0x4004);
+    //this.triangle_ = new Triangle(mem);
     this.noise_ = new Noise(mem);
     this.steps_ = [];
     this.last_ = 0;
     this.wait_ = 2;
 
     this.frameCounter_ = 0;
+
+    // TODO - add a callback when volume changes, so we don't
+    // need to keep recomputing the mixer every single time!
 
     // mem.register(0x4015, {
     //   get: this.getStatus.bind(this),
@@ -65,27 +70,29 @@ export default class Apu {
 
   clock() {
     if (++this.frameCounter_ == FRAME_LIMIT) this.frameCounter_ = 0;
-    const quarter = FRAME_CYCLES.indexOf(this.frameCounter_);
-    if (quarter >= 0) {
+    const quarter = FRAME_CYCLES[this.frameCounter_];
+    if (quarter != null) {
       // TODO - distinguish half from quarter frames.
       this.pulse1_.clockFrame();
       this.pulse2_.clockFrame();
+      //this.triangle_.clockFrame();
       this.noise_.clockFrame();
     }
 
-    if (--this.wait_) return;
+    //this.triangle_.clockSequencer(); // clocks every cycle
 
-    this.pulse1_.clockSequencer();
-    this.pulse2_.clockSequencer();
-    this.noise_.clockSequencer();
+    if (!--this.wait_) {
+      this.pulse1_.clockSequencer();
+      this.pulse2_.clockSequencer();
+      this.noise_.clockSequencer();
+      this.wait_ = 2;
+    }
 
     const volume = this.volume();
     if (volume != this.last_) {
       this.steps_.push([this.clock_.time, volume]);
       this.last_ = volume;
     }
-
-    this.wait_ = 2;
   }
 
   // clockFrame() {
@@ -119,8 +126,19 @@ export default class Apu {
 
     // TODO(sdh): consider using the linear approximation and adjusting
     // all the APU units to output waves centered at zero.
+
+
+    // TODO - consider giving each unit a property for
+    // "# of cycles until volume changes" (provided
+    // memory doesn't change).  Then fast-forward without
+    // recalculating anything - might decrease the
+    // number of reads.
+
   }
 }
 
-const FRAME_CYCLES = [3728.5 * 2, 7456.5 * 2, 11185.5 * 2, 14914.5 * 2];
+const FRAME_CYCLES = {[3728.5 * 2]: 0,
+                      [7456.5 * 2]: 1,
+                      [11185.5 * 2]: 2,
+                      [14914.5 * 2]: 3};
 const FRAME_LIMIT = 14915 * 2;
