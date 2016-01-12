@@ -5,7 +5,7 @@ export default class LengthCounter {
     /** @private @const {!Memory.Register<number>} */
     this.reload_ = mem.int(base + 3, 3, 5);
     /** @private {number} */
-    this.counter_ = 0;
+    this.counter_ = 1; // TODO - so that it's nonzero if it's never clocked...?
 
     /** @private {function()} */
     this.disableCallback_ = function() {};

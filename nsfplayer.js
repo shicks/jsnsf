@@ -42,7 +42,8 @@ export default class NsfPlayer {
 
     if (this.promise != promise) return;
     if (this.node.bufferTime() == 0) console.log('buffer underrun!');
-    for (let i = 0; i < 100; i++) {
+    // TODO - use i < 100 and requestAnimationFrame to be smoother?!?
+    for (let i = 0; i < 10; i++) {
       for (let frameCycle = this.cyclesPerFrame; frameCycle >= 0; frameCycle--) {
         if (frameCycle != frameCycle) throw new Error('NaN');
         if (this.cpu.PC != 0xFFFF) this.cpu.clock();
@@ -59,7 +60,12 @@ export default class NsfPlayer {
         this.writer.write(this.apu.steps(), this.clock.time)
             //.then(() => this.play(promise));
             // .then(() => { setTimeout(() => this.play(promise), 0); });
-            .then(() => { requestAnimationFrame(() => this.play(promise)); });
+            // TODO(sdh): for some reason, requestAnimationFrame (and/or i<100)
+            // causes a weird glitch on the 2nd and later song...?!?
+            //.then(() => { requestAnimationFrame(() => this.play(promise)); });
+            .then(() => {
+              setTimeout(() => this.play(promise), 1000 * (this.node.bufferTime()) - 60);
+            });
     // console.log('Yield data', data);
   }
 

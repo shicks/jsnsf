@@ -29,6 +29,19 @@ import Triangle from './triangle';
 // 4-step mode.  We never need to worry about IRQ.
 
 
+class Enabler {
+  constructor(id) {
+    const element = document.getElementById(id);
+    this.enabled = true;
+    if (element) {
+      element.addEventListener('click', () => {
+        this.enabled = element.checked;
+        console.log(id + ' => ' + this.enabled);
+      });
+    }
+  }  
+}
+
 export default class Apu {
   /**
    * @param {!Memory} mem
@@ -39,13 +52,19 @@ export default class Apu {
     this.clock_ = clock;
     this.pulse1_ = new Pulse(mem, 0x4000);
     this.pulse2_ = new Pulse(mem, 0x4004);
-    //this.triangle_ = new Triangle(mem);
+    this.triangle_ = new Triangle(mem);
     this.noise_ = new Noise(mem);
     this.steps_ = [];
     this.last_ = 0;
     this.wait_ = 2;
 
     this.frameCounter_ = 0;
+
+    this.pulse1Enabled = new Enabler('pulse1_enabled');
+    this.pulse2Enabled = new Enabler('pulse2_enabled');
+    this.triangleEnabled = new Enabler('triangle_enabled');
+    this.noiseEnabled = new Enabler('noise_enabled');
+
 
     // TODO - add a callback when volume changes, so we don't
     // need to keep recomputing the mixer every single time!
@@ -75,12 +94,11 @@ export default class Apu {
       // TODO - distinguish half from quarter frames.
       this.pulse1_.clockFrame();
       this.pulse2_.clockFrame();
-      //this.triangle_.clockFrame();
+      this.triangle_.clockFrame();
       this.noise_.clockFrame();
     }
 
-    //this.triangle_.clockSequencer(); // clocks every cycle
-
+    this.triangle_.clockSequencer(); // clocks every cycle
     if (!--this.wait_) {
       this.pulse1_.clockSequencer();
       this.pulse2_.clockSequencer();
@@ -110,13 +128,13 @@ export default class Apu {
   }
 
   volume() {
-    const pulse1 = this.pulse1_.volume();
-    const pulse2 = this.pulse2_.volume();
+    const pulse1 = this.pulse1Enabled.enabled ? this.pulse1_.volume() : 0;
+    const pulse2 = this.pulse2Enabled.enabled ? this.pulse2_.volume() : 0;
     const pulseOut = (pulse1 || pulse2) &&
         95.88 / (8128 / (pulse1 + pulse2) + 100);
 
-    const triangle = 0; // this.triangle_.volume();
-    const noise = this.noise_.volume();
+    const triangle = this.triangleEnabled.enabled ? this.triangle_.volume() : 0;
+    const noise = this.noiseEnabled.enabled ? this.noise_.volume() : 0;
     const dmc = 0; // this.dmc_.volume();
     const tndOut = (triangle || noise || dmc) &&
         159.79 / (1 / (triangle / 8227 + noise / 12241 + dmc / 22638) + 100);

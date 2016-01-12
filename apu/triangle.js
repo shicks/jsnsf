@@ -1,9 +1,7 @@
-/**
- * @fileoverview NES APU Emulator.
- */
-
 import Memory from '../mem';
 import LengthCounter from './lengthcounter';
+
+// TODO - this pops a lot - can we smooth it out?!?
 
 export default class Triangle {
   /**
@@ -35,11 +33,22 @@ export default class Triangle {
     /** @private {number} */
     this.sequence_ = 0;
 
+
+    for (let i = 0x4008; i < 0x400C; i++) mem.listen(i, () => this.print());
+
     mem.listen(0x400B, () => this.linearCounterReloadFlag_ = true);
-    this.lengthCounter_.onDisable(() => this.volume_ = this.computeVolume_());
+    this.lengthCounter_.onDisable(() => this.volume_ = 0);
   }
 
-  print() {}
+  print() {
+    return;
+    console.log(`TRIANGLE
+linear ${this.linearCounter_} of ${this.linearCounterReloadValue_.get()}
+control ${this.control_.get()}
+sequence ${this.sequenceTimer_} of ${this.sequenceTimerPeriod_.get()} => ${this.sequence_}
+length ${this.lengthCounter_.enabled_.get()} ${this.lengthCounter_.counter_} ${this.lengthCounter_.reload_.get()}
+volume ${this.volume_}`);
+  }
 
   /**
    * @return {number} The value of the waveform, from 0 to 15 (?)
@@ -52,8 +61,10 @@ export default class Triangle {
    * @return {number} Computes the volume.
    */
   computeVolume_() {
-    return this.lengthCounter_.enabled() && this.linearCounter_ > 0 ?
-        WAVEFORM[this.linearCounter_] : 0;
+    const v = this.lengthCounter_.enabled() && this.linearCounter_ > 0 ?
+        WAVEFORM[this.sequence_] : 0;
+    //if (v == 15) console.log('TRIANGLE 15');
+    return v;
   }
 
   /**
@@ -63,13 +74,17 @@ export default class Triangle {
   clockFrame(quarter) {
     if (this.linearCounterReloadFlag_) {
       this.linearCounter_ = this.linearCounterReloadValue_.get();
-    } else if (this.linearCounter_ >= 0) {
+    } else if (this.linearCounter_ > 0) {
       this.linearCounter_--;
-      if (!this.linearCounter_) this.volume_ = this.computeVolume_();
+      if (!this.linearCounter_) this.volume_ = 0;
     }
 
     if (this.control_.get()) {
       this.linearCounterReloadFlag_ = false;
+    }
+
+    if (quarter % 2 && !this.control_.get()) {
+      this.lengthCounter_.clock();
     }
   }
 
@@ -77,7 +92,7 @@ export default class Triangle {
   clockSequencer() {
     if (this.sequenceTimer_ == 0) {
       this.sequence_ = (this.sequence_ + 1) % 32;
-      this.sequence_ = this.sequenceTimerPeriod_.get();
+      this.sequenceTimer_ = this.sequenceTimerPeriod_.get();
       this.volume_ = this.computeVolume_();
     } else {
       this.sequenceTimer_--;
