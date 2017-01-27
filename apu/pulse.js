@@ -13,21 +13,26 @@ export default class Pulse {
   constructor(mem, base) {
     /** @private @const {number} */
     this.base_ = base;
+    
+    // FOR LOGGING...
+    var index = base > 0x4000 ? 2 : 1;
+    mem.bool(0x4015, index - 1, 'P' + index);
+
+    /** @private @const {!Memory.Register<number>} */
+    this.dutyCycle_ = mem.int(base, 6, 2, 'd');
+    /** @private @const {!Memory.Register<boolean>} */
+    this.sweepEnabled_ = mem.bool(base, 15, 'sw');
+    /** @private @const {!Memory.Register<number>} */
+    this.sweepShift_ = mem.int(base, 8, 3, '-sh');
+    /** @private @const {!Memory.Register<boolean>} */
+    this.sweepNegate_ = mem.bool(base, 11, '-n');
+    /** @private @const {!Memory.Register<number>} */
+    this.sweepPeriod_ = mem.int(base, 12, 3, '-p');
+    /** @private @const {!Memory.Register<number>} */
+    this.wavePeriod_ = mem.int(base, 16, 11, 'p');
+
     /** @private @const {!Envelope} */
     this.envelope_ = new Envelope(mem, base);
-    
-    /** @private @const {!Memory.Register<number>} */
-    this.dutyCycle_ = mem.int(base, 6, 2);
-    /** @private @const {!Memory.Register<number>} */
-    this.sweepShift_ = mem.int(base, 8, 3);
-    /** @private @const {!Memory.Register<boolean>} */
-    this.sweepNegate_ = mem.bool(base, 11);
-    /** @private @const {!Memory.Register<number>} */
-    this.sweepPeriod_ = mem.int(base, 12, 3);
-    /** @private @const {!Memory.Register<boolean>} */
-    this.sweepEnabled_ = mem.bool(base, 15);
-    /** @private @const {!Memory.Register<number>} */
-    this.wavePeriod_ = mem.int(base, 16, 11);
 
     /** @private {number} */
     this.sweepDivider_ = 0;  // TODO(sdh): use a Divider?

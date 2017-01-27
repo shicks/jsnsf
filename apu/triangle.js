@@ -10,12 +10,15 @@ export default class Triangle {
   constructor(mem) {
     const base = 0x4008;
 
+    // FOR LOGGING...
+    mem.bool(0x4015, 2, 'T');
+
     /** @private @const {!Memory.Register<number>} */
-    this.linearCounterReloadValue_ = mem.int(0x4008, 0, 7);
+    this.linearCounterReloadValue_ = mem.int(0x4008, 0, 7, 'r');
     /** @private @const {!Memory.Register<boolean>} */
-    this.control_ = mem.bool(0x4008, 7);
+    this.control_ = mem.bool(0x4008, 7, 'c');
     /** @private @const {!Memory.Register<number>} */
-    this.sequenceTimerPeriod_ = mem.int(0x400A, 0, 11);
+    this.sequenceTimerPeriod_ = mem.int(0x400A, 0, 11, 'p');
 
     /** @private {number} */
     this.volume_ = 0;

@@ -1,12 +1,17 @@
+import Clock from './clock';
+
 /** Manages memory, including various views and listeners. */
 export default class Memory {
-  constructor() {
+  /** @param {!Clock=} opt_clock */
+  constructor(opt_clock) {
     /** @private @const {!Uint8Array} */
     this.data8_ = new Uint8Array(0x10000);
     /** @private @const {!Object<number, !Array<function()>>} */
     this.callbacks_ = {};
     /** @private @const {!Object<number, !Memory.Register>} */
     this.registers_ = {};
+
+    this.log_ = opt_clock ? new MemLogger(opt_clock) : null;
   }
 
 
@@ -114,9 +119,10 @@ export default class Memory {
    * @param {number} addr
    * @param {number} shift
    * @param {number} length
+   * @param {string=} opt_name Name for logging.
    * @return {!Memory.Register<number>}
    */
-  int(addr, shift, length) {
+  int(addr, shift, length, opt_name) {
 
     // TODO - have these listen for writes and keep a local copy?!?
 
@@ -131,9 +137,7 @@ export default class Memory {
     const setWord = mask > 0xff ? this.setWord : this.set;
     const get = () => (getWord.call(self, addr) & mask) >>> shift;
     let value = get();
-    this.listen(addr, () => value = get());
-    if (mask > 0xff) this.listen(addr + 1, () => value = get());
-    return {
+    const reg = {
       get() {
         return value;
       },
@@ -142,21 +146,26 @@ export default class Memory {
         setWord.call((word & ~mask) | ((value << shift) & mask));
       },
     };
+    const cb = opt_name && this.log_ ?
+        this.log_.add(reg, opt_name) : function() {};
+    this.listen(addr, () => { value = get(); cb(value); });
+    if (mask > 0xff) this.listen(addr + 1, () => { value = get(); cb(value); });
+    return reg;
   }
 
 
   /**
    * @param {number} addr
    * @param {number} bit
+   * @param {string=} opt_name Name for logging.
    * @return {!Memory.Register<boolean>}
    */
-  bool(addr, bit) {
+  bool(addr, bit, opt_name) {
     const mask = 1 << bit;
     const self = this;
     const get = () => !!(self.get(addr) & mask);
     let value = get();
-    this.listen(addr, () => value = get());
-    return {
+    const reg = {
       get() {
         return value;
       },
@@ -165,6 +174,10 @@ export default class Memory {
         else self.set(addr, self.get(addr) & ~mask);
       },
     };
+    const cb = opt_name && this.log_ ?
+        this.log_.add(reg, opt_name) : function() {};
+    this.listen(addr, () => { value = get(); cb(value); });
+    return reg;
   }
 }
 
@@ -190,3 +203,46 @@ Memory.Register = class {
   /** @param {T} value */
   set(value) {}
 };
+
+
+class MemLogger {
+  constructor(clock) {
+    this.clock = clock;
+    this.names = [];
+    this.regs = [];
+    this.changed = [];
+    this.lastTime = Infinity;
+    this.log = document.getElementById('memlog');
+  }
+
+  /**
+   * @param {!Memory.Register} reg
+   * @param {string} name
+   * @return {function(number)} Callback
+   */
+  add(reg, name) {
+    if (!this.log) return function() {};
+    this.regs.push(reg);
+    this.names.push(name);
+    return this.callback.bind(this, this.regs.length - 1);
+  }
+
+  callback(i, val) {
+    var time = this.clock.time;
+    if ((i in this.changed && this.changed[i] != val) ||
+        time - this.lastTime > 0.01) {
+      this.emit();
+    }
+    this.changed[i] = val;
+    this.lastTime = time;
+  }
+
+  emit() {
+    const pieces = [String(this.lastTime).substring(0, 6) + 's'];
+    for (var i = 0; i < this.regs.length; i++) {
+      pieces.push(this.names[i] + ': ' + Number(this.regs[i].get()));
+    }
+    this.log.textContent += pieces.join('\t') + '\n';
+    this.changed = [];
+  }
+}

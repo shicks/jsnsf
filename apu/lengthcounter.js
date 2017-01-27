@@ -3,7 +3,7 @@ export default class LengthCounter {
     /** @private @const {!Memory.Register<boolean>} */
     this.enabled_ = mem.bool(0x4015, (base >>> 2) & 7);
     /** @private @const {!Memory.Register<number>} */
-    this.reload_ = mem.int(base + 3, 3, 5);
+    this.reload_ = mem.int(base + 3, 3, 5, 'lcr');
     /** @private {number} */
     this.counter_ = 1; // TODO - so that it's nonzero if it's never clocked...?
 

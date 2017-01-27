@@ -29,6 +29,15 @@ import Triangle from './triangle';
 // 4-step mode.  We never need to worry about IRQ.
 
 
+// TODO - log changes to APU state
+//   - but we should bundle them such that if several registers
+//     change within a short period of time, then only a single
+//     line is logged (provided the same one doesn't change
+//     multiple times)
+//   - consider allowing registers to be named and then having
+//     the MMU do this?
+
+
 class Enabler {
   constructor(id) {
     const element = document.getElementById(id);

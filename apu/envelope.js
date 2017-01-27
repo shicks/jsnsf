@@ -9,11 +9,11 @@ export default class Envelope {
    */
   constructor(mem, base) {
     /** @private @const {!Memory.Register<number>} */
-    this.volumeEnvelope_ = mem.int(base, 0, 4);
+    this.volumeEnvelope_ = mem.int(base, 0, 4, 'env');
     /** @private @const {!Memory.Register<boolean>} */
-    this.constantVolume_ = mem.bool(base, 4);
+    this.constantVolume_ = mem.bool(base, 4, '-c');
     /** @private @const {!Memory.Register<boolean>} */
-    this.loopFlag_ = mem.bool(base, 5); // TODO(sdh): also: length counter halt?
+    this.loopFlag_ = mem.bool(base, 5, '-l'); // TODO(sdh): also: length counter halt?
 
     mem.listen(base + 0, () => {
       this.volume_ = this.computeVolume_();

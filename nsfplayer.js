@@ -17,7 +17,7 @@ export default class NsfPlayer {
     this.nsf = nsf;
     this.clock = Clock.ntsc();
     this.cyclesPerFrame = nsf.cyclesPerFrame(this.clock);
-    this.mem = new Memory();
+    this.mem = new Memory(this.clock);
     this.apu = new Apu(this.mem, this.clock);
     this.cpu = new Cpu(this.mem);
     this.banks = new BankSwitcher(this.mem);
@@ -25,9 +25,25 @@ export default class NsfPlayer {
     this.node.connect(ac.destination);
     this.writer = new StepBufferWriter(this.node);
     this.promise = null;
+
+
+    const log = document.getElementById('log');
+    for (let a = 0x4000; a < 0x4018; a++) {
+      this.mem.listen(a, (function(addr) {
+        let frame = 'Frame ' + (this.clock.time * 60) + ':';
+        if (frame.length < 20) frame = frame + ' '.repeat(20 - frame.length);
+        if (log) {
+          log.textContent += frame + ' (' + addr.toString(16) + ') <= ' +
+              this.mem.get(addr).toString(16) + '\n';
+        }
+      }).bind(this, a));
+    }
+
   }
 
   start(song = 0) {
+    const log = document.getElementById('memlog');
+    if (log) log.textContent = '';
     this.nsf.init(this.cpu, this.mem, song, this.banks);
     this.node.reset();
     this.promise = null;
@@ -51,8 +67,11 @@ export default class NsfPlayer {
         this.clock.tick();
       }
       if (this.cpu.PC == 0xFFFF) {
+        //this.cpu.log('START FRAME')
         // console.log('New frame');
         this.nsf.frame(this.cpu);
+      } else {
+        this.cpu.log('LONG FRAME');
       }
     }
     // Yield a single frame worth of steps

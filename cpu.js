@@ -40,13 +40,28 @@ export default class Cpu {
     this.wait = 1;
 
     this.opcodes_ = instructionTable();
-    this.message = '';
 
+    const logdiv = document.getElementById('log');
+    let msgs = [];
+    let msgslen = 0;
+    //const tabble = new Tabble(logdiv);
+    // this.log = msg => tabble.write(msg);
 
-    var logdiv = document.getElementById('log');
-    this.log = logdiv ? msg => logdiv.textContent += msg + '\n' : msg => console.log(msg);
-    this.log = () => {};
-    this.log = msg => console.log(msg);
+    const VOID = () => {};
+    this.log = logdiv ? msg => {
+      msgs.push(msg);
+      msgslen += msg.length;
+      if (msgslen > 1000) {
+        logdiv.textContent += msgs.join('');
+        msgslen = 0;
+        msgs = [];
+      }
+    } : VOID; // msg => console.log(msg);
+
+    this.line = this.log != VOID ? rest => this.log('\t' + rest()) : VOID;
+
+    // this.log = () => {};
+    // this.line = () => {};
   }
 
   init() {
@@ -64,13 +79,14 @@ export default class Cpu {
     if (--this.wait > 1) return;
     if (this.opcode) {
       // Actually execute the opcode.
-      // try {
-        this.opcode.op.call(this);
-      // } finally {
+      //try {
+      this.opcode.op.call(this);
+      //} finally {
       //   //if (window.msg) { 
-           // this.log(this.message);
+        //this.log(this.message);
+        //this.message = '';
       //   //window.msg = false; }
-      // }
+      //}
       
       if (!this.opcode.extraCycles) this.wait = 0;
       this.opcode = null;
@@ -90,7 +106,9 @@ export default class Cpu {
     }
     this.wait += this.opcode.cycles;
     const lastPc = hex(this.PC - this.opcode.mode.bytes, 2);
-    // this.message = `${lastPc}: ${this.opcode.format(this.operand)}`;
+    //this.message = `${lastPc}: ${this.opcode.format(this.operand)}`;
+    // TODO - skip?
+    this.log(`\n${lastPc}: ${this.opcode.format(this.operand)}`);
   }
 
 
@@ -99,13 +117,15 @@ export default class Cpu {
     this.PC = --addr;
     while (count-- > 0) {
       this.loadOp();
-      let bytes = '\t\t\t';
+      let bytes = '\t';
       while (addr < this.PC) {
         bytes += hex(this.mem_.get(++addr)).substring(1) + ' ';
       }
-      result.push(this.message + bytes);
+      // TODO(sdh): this.message no longer used...
+      //result.push(this.message + bytes);
+      this.log(bytes);
     }
-    console.log(result.join('\n'));
+    //console.log(result.join('\n'));
   }
 
 
@@ -307,7 +327,7 @@ export default class Cpu {
   }
   // Return from Subroutine
   RTS() { this.PC = this.pullWord();
-          // this.message += '\t\t\tPC=' + hex(this.PC);
+          this.line(() => 'PC=' + hex(this.PC));
         }
   // Return from Interrupt
   RTI() {
@@ -368,37 +388,37 @@ export default class Cpu {
     if (addr < 0) throw new Error('Cannot write to immediate value.');
     if (addr == null) {
       this.A = value;
-      // this.message += '\t\tA=' + hex(value);
+      this.line(() => 'A=' + hex(value));
     } else {
       this.mem_.set(addr, value);
-      // this.message += '\t\t(' + hex(addr, 2) + ')=' + hex(value);
+      this.line(() => '(' + hex(addr, 2) + ')=' + hex(value));
     }
   }
 
   /** @param {number} value A one-byte integer. */
   pushByte(value) {
     this.mem_.set(this.SP--, value);
-    // this.message += `\t\t(SP)=${hex(value)}, SP=${hex(this.SP,2)}`;
+    this.line(() => `(SP)=${hex(value)}, SP=${hex(this.SP,2)}`);
   }
 
   /** @param {number} value A two-byte integer. */
   pushWord(value) {
     this.mem_.setWord(this.SP - 1, value);
     this.SP -= 2;
-    // this.message += `\t\t(SP)=${hex(value, 2)}, SP=${hex(this.SP,2)}`;
+    this.line(() => `(SP)=${hex(value, 2)}, SP=${hex(this.SP,2)}`);
   }
 
   /** @return {number} */
   pullByte(value) {
     const result = this.mem_.get(++this.SP);
-    // this.message += `\t\t${hex(result)}<-(SP), SP=${hex(this.SP,2)}`;
+    this.line(() => `${hex(result)}<-(SP), SP=${hex(this.SP,2)}`);
     return result;
   }
 
   /** @return {number} */
   pullWord(value) {
     const result = this.mem_.getWord((this.SP += 2) - 1);
-    // this.message += `\t\t${hex(result, 2)}<-(SP), SP=${hex(this.SP,2)}`;
+    this.line(() => `${hex(result, 2)}<-(SP), SP=${hex(this.SP,2)}`);
     return result;
   }
 
@@ -423,7 +443,7 @@ export default class Cpu {
   cmpFlags_(reg, mem) {
     this.C = !(this.S = reg < mem);
     this.Z = reg == mem;
-    // this.message += `\t\tR=${hex(reg)}, M=${hex(mem)}, C=${this.C?1:0}, S=${this.S?1:0}, Z=${this.Z?1:0}`;
+    this.line(() => `R=${hex(reg)}, M=${hex(mem)}, C=${this.C?1:0}, S=${this.S?1:0}, Z=${this.Z?1:0}`);
   }   
 
   /**
@@ -434,7 +454,7 @@ export default class Cpu {
    * @private
    */
   checkBranch_(addr) {
-    // this.message += `\t\tPC=${hex(this.PC, 2)}->${hex(addr, 2)}`;
+    this.line(() => `PC=${hex(this.PC, 2)}->${hex(addr, 2)}`);
     this.wait = ((this.PC & 0xf000) == (addr & 0xf000)) ? 1 : 2;
     return addr;
   }

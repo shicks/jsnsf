@@ -8,13 +8,17 @@ export default class Noise {
    */
   constructor(mem) {
     const base = 0x400C;
-    /** @private @const {!Envelope} */
-    this.envelope_ = new Envelope(mem, base);
+
+    // FOR LOGGING...
+    mem.bool(0x4015, 3, 'N');
     
     /** @private @const {!Memory.Register<number>} */
-    this.rate_ = mem.int(base + 2, 0, 4);
+    this.rate_ = mem.int(base + 2, 0, 4, 'r');
     /** @private @const {!Memory.Register<boolean>} */
-    this.mode_ = mem.int(base + 2, 7);
+    this.mode_ = mem.int(base + 2, 7, 'm');
+
+    /** @private @const {!Envelope} */
+    this.envelope_ = new Envelope(mem, base);
 
     /** @private {number} */
     this.shiftDivider_ = 0;
